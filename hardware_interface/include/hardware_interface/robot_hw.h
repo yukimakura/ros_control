@@ -43,72 +43,63 @@ namespace hardware_interface
 {
 
 /** \brief Robot Hardware Interface and Resource Manager
- *
- * This class provides a standardized interface to a set of robot hardware
- * interfaces to the controller manager. It performs resource conflict checking
- * for a given set of controllers and maintains a map of hardware interfaces.
- * It is meant to be used as a base class for abstracting custom robot
- * hardware.
- *
- * The hardware interface map (\ref interfaces_) is a 1-to-1 map between
- * the names of interface types derived from \ref HardwareInterface and
- * instances of those interface types.
- *
- * A class derived from this base interface represents a robot and stores the
- * state of the robot's hardware resources (joints, sensors, actuators) and
- * outgoing commands in its data member arrays. The names of these members
- * should provide semantic meaning (e.g. pos, vel, eff, cmd).
- * Commands from controllers are populated by the controller's update method,
- * (controller_interface::ControllerBase::update()).
- * For each resource a \ref JointStateHandle (for read only joints),
- * \ref JointHandle (for read and write joints) or custom handle can be used
- * which is registered (\ref hardware_interface::ResourceManager::registerHandle)
- * with one of the robot's interface types. Note that \ref JointStateHandle
- * should be preferred in case only reading from the joint is required
- * because it doesn't create conflicts between controllers.
- * For read-only joints it is possible to use \ref JointStateInterface and for
- * joints that accept commands and provide feedback (read and write)
- * \ref JointCommandInterface can be used or one of its derived interfaces
- * (e.g. \ref PositionJointInterface). Another option is to define and use custom
- * ones. The interfaces themselfes are then registered (\ref registerInterface)
- * with the derived robot class. The registration (\ref registerInterface) of
- * interfaces can be done either in the constructor or \ref init of a custom
- * robot hardware class.
+ *　このクラスは、コントローラマネージャにロボットのハードウェアインタフェースのセットへの標準化されたインタフェースを提供します。
+  与えられたコントローラのセットに対してリソースの競合チェックを行い、ハードウェアインタフェースのマップを保持します。
+ 　カスタムロボットハードウェアを抽象化するためのベースクラスとして使用されます。
+
+ *　ハードウェアインターフェースマップ ( interfaces_) は、
+    HardwareInterface から派生したインターフェースタイプの名前と、
+    それらのインターフェースタイプのインスタンスとの間の 1 対 1 のマップです。
+ * 
+ * この基本インターフェースから派生したクラスはロボットを表し、
+ * ロボットのハードウェアリソース（関節、センサー、アクチュエータ）の状態と
+ * 送信コマンドをデータメンバの配列に格納します。
+ * これらのメンバの名前は、意味的な意味を持つものでなければなりません（例：pos, vel, eff, cmd）。
+ * コントローラからのコマンドは、
+ * コントローラの更新メソッド (controller_interface::ControllerBase::update()) によって生成されます。
+ *  
+ * 各リソースに対して、JointStateHandle（読み取り専用ジョイント用）、
+ * JointHandle（読み取りおよび書き込みジョイント用）、
+ * またはカスタムハンドルを使用して、
+ * ロボットのインターフェースタイプのいずれかで登録された
+ * （hardware_interface::ResourceManager::registerHandle）ハンドルを使用することができます。
+ * ジョイントからの読み込みのみが必要な場合には、コントローラ間の競合が発生しないため、
+ * JointStateHandle を使用することが望ましいことに注意してください。
+ * 
+ *  読み取り専用のジョイントにはJointStateInterfaceを使用することができ、
+ * コマンドを受け入れてフィードバック（読み書き）を提供するジョイントには
+ * JointCommandInterfaceまたはその派生インターフェースの1つ（例：PositionJointInterface）を使用することができます。
+ *  もう一つのオプションは、カスタムのものを定義して使用することです。 
+ * インターフェースは、派生したロボットクラスに登録（registerInterface）されます。
+ * インターフェースの登録(registerInterface)は、
+ * カスタムロボットハードウェアクラスのコンストラクタまたはinitで行うことができます。
  */
 class RobotHW : public InterfaceManager
 {
 public:
   virtual ~RobotHW() = default;
 
-  /** \brief The init function is called to initialize the RobotHW from a
-   * non-realtime thread.
-   *
-   * Initialising a custom robot is done by registering joint handles
-   * (\ref hardware_interface::ResourceManager::registerHandle) to hardware
-   * interfaces that group similar joints and registering those individual
-   * hardware interfaces with the class that represents the custom robot
-   * (derived from this hardware_interface::RobotHW)
-   *
-   * \note Registering of joint handles and interfaces can either be done in the
-   * constructor or this \ref init method.
-   *
-   * \param root_nh A NodeHandle in the root of the caller namespace.
-   *
-   * \param robot_hw_nh A NodeHandle in the namespace from which the RobotHW
-   * should read its configuration.
-   *
-   * \returns True if initialization was successful
+  /** \brief 非リアルタイムスレッドからRobotHWを初期化するためにinit関数を呼び出します。
+    カスタムロボットの初期化は、ジョイントハンドルを登録することで行います。
+    (ref hardware_interface::ResourceManager::registerHandle) to hardware
+    インターフェイスをグループ化し、それらの個々のハードウェア・インターフェイスをカスタム・ロボットを表すクラスに登録します。
+    (この hardware_interface::RobotHW から派生)
+   
+    \note ジョイントハンドルとインターフェースの登録は、コンストラクタで行うか、この  init メソッドで行うことができます。
+   
+    \param root_nh 呼び出し元の名前空間のルートにある NodeHandle
+   
+    \param robot_hw_nh RobotHWがその設定を読み込むべきネームスペースのNodeHandle
+   
+    \returns 初期化が成功したらTrueを返す
    */
   virtual bool init(ros::NodeHandle& /*root_nh*/, ros::NodeHandle &/*robot_hw_nh*/) {return true;}
 
   /** \name Resource Management
    *\{*/
 
-  /** Check (in non-realtime) if the given set of controllers is allowed
-   * to run simultaneously.
-   *
-   * This default implementation simply checks if any two controllers use the
-   * same resource.
+  /** (非リアルタイムで) 与えられたコントローラのセットが同時に実行できるかどうかをチェックします。　
+このデフォルトの実装では、2つのコントローラが同じリソースを使用しているかどうかをチェックします。
    */
   virtual bool checkForConflict(const std::list<ControllerInfo>& info) const
   {
@@ -149,17 +140,15 @@ public:
   /** \name Hardware Interface Switching
    *\{*/
 
-  /**
-   * Check (in non-realtime) if given controllers could be started and stopped from the current state of the RobotHW
-   * with regard to necessary hardware interface switches and prepare the switching. Start and stop list are disjoint.
-   * This handles the check and preparation, the actual switch is commited in doSwitch().
+  /**　必要なハードウェアインターフェイススイッチについて、RobotHWの現在の状態から、与えられたコントローラが起動・停止できるかどうかを（非リアルタイムで）確認し、切り替えの準備をします。起動リストと停止リストは分離されています。　
+      これはチェックと準備を処理し、実際のスイッチはdoSwitch()でコミットされます。
    */
   virtual bool prepareSwitch(const std::list<ControllerInfo>& /*start_list*/,
                              const std::list<ControllerInfo>& /*stop_list*/) { return true; }
 
   /**
-   * Perform (in realtime) all necessary hardware interface switches in order to start and stop the given controllers.
-   * Start and stop list are disjoint. The feasability was checked in prepareSwitch() beforehand.
+   * 与えられたコントローラを起動したり停止したりするために必要なすべてのハードウェアインターフェイススイッチを (リアルタイムで) 実行します。
+    開始リストと停止リストは不連続です。実現可能性はprepareSwitch()で事前にチェックしています。
    */
   virtual void doSwitch(const std::list<ControllerInfo>& /*start_list*/,
                         const std::list<ControllerInfo>& /*stop_list*/) {}
@@ -188,38 +177,31 @@ public:
    *\{*/
 
   /** \brief Read data from the robot hardware.
+   *readメソッドは制御ループサイクル（read, update, write）の一部であり、ロボットのハードウェアリソース（関節、センサ、アクチュエータ）からロボットの状態を入力するために使用されます
+    このメソッドは、controller_manager::ControllerManager::update() と write の前に呼び出す必要があります。
+
+   * \note readとは、ハードウェアからの読み込み状態を指します。
+      これは、ハードウェアにコマンドを書き込むことを指す write を補完するものです。
    *
-   * The read method is part of the control loop cycle (\ref read, update, \ref write) 
-   * and is used to populate the robot state from the robot's hardware resources
-   * (joints, sensors, actuators). This method should be called before 
-   * controller_manager::ControllerManager::update() and \ref write.
-   * 
-   * \note The name \ref read refers to reading state from the hardware.
-   * This complements \ref write, which refers to writing commands to the hardware.
+   * 読み込み中のWallTimeの問い合わせはリアルタイムセーフではありません。
+   * パラメータtimeとperiodを使用することで、リアルタイムソースから時間を注入することが可能になります。
    *
-   * Querying WallTime inside \ref read is not realtime safe. The parameters
-   * \ref time and \ref period make it possible to inject time from a realtime source.
-   *
-   * \param time The current time
-   * \param period The time passed since the last call to \ref read
+   * \param time 現在の時刻
+   * \param period 最後に呼び出されてからの経過時間
    */
   virtual void read(const ros::Time& /*time*/, const ros::Duration& /*period*/) {}
 
   /** \brief Write commands to the robot hardware.
-   * 
-   * The write method is part of the control loop cycle (\ref read, update, \ref write) 
-   * and is used to send out commands to the robot's hardware 
-   * resources (joints, actuators). This method should be called after 
-   * \ref read and controller_manager::ControllerManager::update.
-   * 
-   * \note The name \ref write refers to writing commands to the hardware.
-   * This complements \ref read, which refers to reading state from the hardware.
+   * writeメソッドは、制御ループサイクル（read, update, write）の一部であり、ロボットのハードウェアリソース（ジョイント、アクチュエータ）にコマンドを送信するために使用されます。
+    このメソッドは、readとcontroller_manager::ControllerManager::updateの後に呼び出す必要があります。
+
+   * \note 書き込みとは、ハードウェアにコマンドを書き込むことを指します。
+   * これは、ハードウェアからの読み出し状態を指すreadを補完するものです。
    *
-   * Querying WallTime inside \ref write is not realtime safe. The parameters
-   * \ref time and \ref period make it possible to inject time from a realtime source.
-   *
-   * \param time The current time
-   * \param period The time passed since the last call to \ref write
+    書き込みの内部でWallTimeをクエリすることは、リアルタイムセーフではありません。
+    timeとperiodというパラメータを使うと、リアルタイムソースから時間を注入することが可能になります。   *
+   * \param time 現在の時刻
+   * \param period 最後の書き込み呼び出しからの経過時間
    */
   virtual void write(const ros::Time& /*time*/, const ros::Duration& /*period*/) {}
 
